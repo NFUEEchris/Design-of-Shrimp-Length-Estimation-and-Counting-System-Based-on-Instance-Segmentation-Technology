@@ -1,0 +1,7 @@
+python segment/predict_ori.py --weights "C:\code\YOLOv7-Pytorch-Segmentation-master\runs\train_seg\exp16\weights\best.pt" --view-img --source "C:\Users\Chris Lin\Downloads\0129(4).mp4"
+python segment/predict_ori.py --weights "C:\code\YOLOv7-Pytorch-Segmentation-master\runs\train_seg\exp16\weights\best.pt" --view-img --source "E:\shrimp\11.6cm.png"
+python segment/predict_ori.py --weights "C:\code\YOLOv7-Pytorch-Segmentation-master\train-seg\yolov7-seg4\weights\best.pt" --view-img --source "E:\shrimp\11.9cm.png"
+
+
+python segment/predict.py --weights "C:\code\YOLOv7-Pytorch-Segmentation-master\train-seg\yolov7-seg4\weights\best.pt" --view-img --source "C:\Users\Chris Lin\Downloads\0129(4).mp4"
+python segment/predict.py --weights "C:\code\YOLOv7-Pytorch-Segmentation-master\runs\train_seg\exp16\weights\best.pt" --view-img --source "C:\Users\Chris Lin\Downloads\0129(4).mp4"
