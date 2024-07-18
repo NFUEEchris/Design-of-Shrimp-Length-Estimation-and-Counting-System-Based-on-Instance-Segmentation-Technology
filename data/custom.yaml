@@ -1,0 +1,11 @@
+train: "E:\\shrimp_data_final_with_negtive_sample\\split\\train"
+val: "E:\\shrimp_data_final_with_negtive_sample\\split\\val"
+
+# number of classes
+nc: 1
+
+# class names
+names: ['Shrimp']
+
+
+
