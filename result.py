@@ -1,1 +1,0 @@
-print('big: 0,mid: 1 ,small: 3')
