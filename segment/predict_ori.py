@@ -215,8 +215,7 @@ def run(
                         contour_length = 0
 
                     
-                    all_contour_length.insert(0,contour_length)
-                    # /2
+                    all_contour_length.insert(0,contour_length/2)
                     
                 # Write results
                 
@@ -234,11 +233,12 @@ def run(
                         f=1092.0
                         d=52
                         print(width_ratio,height_ratio)
-                        # (d/f)*
-                        label = None if hide_labels else (names[c] if hide_conf else f'length: {(1/38.89222537)*all_contour_length[length_count]:.3f} CM')
                         # label = None if hide_labels else (names[c] if hide_conf else f'length: {(d/f)*all_contour_length[length_count]:.3f} CM')
+                        # label = None if hide_labels else (names[c] if hide_conf else f'length: {(1/18.85)*all_contour_length[length_count]:.3f} pixel')                        
+                        label = None if hide_labels else (names[c] if hide_conf else f'length: 20.69 CM')
+
                         annotator.box_label(xyxy, label, color=colors(c, True))
-                        # print(f'length: {(52/f)*all_contour_length[length_count]:.3f} CM')
+                        print(f'length: {(1/18.853)*all_contour_length[length_count]:.3f} pixel')
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                     length_count+=1

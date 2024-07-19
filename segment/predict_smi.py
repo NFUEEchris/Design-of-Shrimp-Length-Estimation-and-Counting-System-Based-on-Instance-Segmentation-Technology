@@ -60,7 +60,7 @@ from utils.segment.general import process_mask, scale_masks
 from utils.segment.plots import plot_masks
 from utils.torch_utils import select_device, smart_inference_mode
 
-from motor import motor as motor_fun
+from segment.servo_motor import motor as motor_fun
 
 sys.path.append("..") 
 from tracker.mc_SMILEtrack import SMILEtrack

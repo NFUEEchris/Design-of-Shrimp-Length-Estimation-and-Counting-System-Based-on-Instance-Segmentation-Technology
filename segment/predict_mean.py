@@ -39,7 +39,7 @@ import serial
 from time import sleep
 import sys
 # from boxmot.trackers.bytetrack import byte_tracker
-sys.path.append(r'C:\code\YOLOv7-Pytorch-Segmentation-master')
+sys.path.append(r'D:\Chris\YOLOv7-Pytorch-Segmentation-master')
 # print(sys.path)
 from deep_sort.utils.parser import get_config
 from deep_sort.deep_sort import DeepSort
@@ -60,7 +60,7 @@ from utils.segment.general import process_mask, scale_masks
 from utils.segment.plots import plot_masks
 from utils.torch_utils import select_device, smart_inference_mode
 
-from motor import motor as motor_fun
+from segment.servo_motor import motor as motor_fun
 
 # sys.path.append("..") 
 # from ..tracker.mc_SMILEtrack import SMILEtrack
@@ -91,7 +91,7 @@ def scale_contour(cnt, scale):
 def pixel2len(pixel):
     f=1092.0
     d=52
-    return (d/f)*pixel
+    return (1/13.85)*pixel
 
 #====================================setting==============================================
 big=12
@@ -133,7 +133,7 @@ def run(
 
     #====================================================TRACKER===============================================
     cfg = get_config()
-    cfg.merge_from_file(r"C:/code/YOLOv7-Pytorch-Segmentation-master/deep_sort/configs/deep_sort.yaml")
+    cfg.merge_from_file(r"D:\Chris\YOLOv7-Pytorch-Segmentation-master\deep_sort\configs\deep_sort.yaml")
     deepsort = DeepSort(cfg.DEEPSORT.MODEL_TYPE,
                         max_dist=cfg.DEEPSORT.MAX_DIST,
                         max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
@@ -304,7 +304,7 @@ def run(
                         
                         
                         #=======================================arduino==============================================================
-                        if  dis_A<push_dis and line_status_A=="right"  and np.mean(length_dict[str(id)])<small and id_dict.get(str(id))==0:
+                        if  dis_A<25 and line_status_A=="right"  and np.mean(length_dict[str(id)])<small and np.mean(length_dict[str(id)])>5 and id_dict.get(str(id))==0:
                             motor="motor_A"                       
                             print("motor_A")
                             motor_fun(1)
@@ -317,7 +317,7 @@ def run(
                             motor_fun(2)
                             id_dict[str(id)]=id_dict.get(str(id))+1
                             
-                        elif dis_C<120 and line_status_C=="right" and np.mean(length_dict[str(id)])>small and id_dict.get(str(id))==0:
+                        elif dis_C<150 and line_status_C=="right" and np.mean(length_dict[str(id)])>small and id_dict.get(str(id))==0:
                             print("motor_C")
                             motor="motor_C"
                             motor_fun(3)

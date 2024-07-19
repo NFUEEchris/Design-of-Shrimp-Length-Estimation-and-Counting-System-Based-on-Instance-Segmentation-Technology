@@ -39,7 +39,7 @@ import serial
 from time import sleep
 import sys
 # from boxmot.trackers.bytetrack import byte_tracker
-sys.path.append(r'C:\code\YOLOv7-Pytorch-Segmentation-master')
+sys.path.append(r'D:\Chris\YOLOv7-Pytorch-Segmentation-master')
 # print(sys.path)
 from deep_sort.utils.parser import get_config
 from deep_sort.deep_sort import DeepSort
@@ -60,7 +60,7 @@ from utils.segment.general import process_mask, scale_masks
 from utils.segment.plots import plot_masks
 from utils.torch_utils import select_device, smart_inference_mode
 
-from motor import motor as motor_fun
+from segment.servo_motor import motor as motor_fun
 
 # sys.path.append("..") 
 # from ..tracker.mc_SMILEtrack import SMILEtrack
@@ -87,15 +87,18 @@ def scale_contour(cnt, scale):
     cnt_scaled = cnt_scaled + [cx, cy]
     cnt_scaled = cnt_scaled.astype(np.int32)
 
-    return cnt_scaled    
+    return cnt_scaled,cx,cy    
 def pixel2len(pixel):
-    f=1092.0
+    # f=1092.0
+    # f=906.0
+    # f=868
+    f=1508.0
     d=52
-    return (d/f)*pixel
+    return (1/13.85)*pixel
 
 #====================================setting==============================================
-big=12
-small=10
+big=18
+small=15
 #====================================setting==============================================
 def run(
         weights=ROOT / 'yolov5s-seg.pt',  # model.pt path(s)
@@ -133,7 +136,7 @@ def run(
 
     #====================================================TRACKER===============================================
     cfg = get_config()
-    cfg.merge_from_file(r"C:/code/YOLOv7-Pytorch-Segmentation-master/deep_sort/configs/deep_sort.yaml")
+    cfg.merge_from_file(r"D:\Chris\YOLOv7-Pytorch-Segmentation-master\deep_sort\configs\deep_sort.yaml")
     deepsort = DeepSort(cfg.DEEPSORT.MODEL_TYPE,
                         max_dist=cfg.DEEPSORT.MAX_DIST,
                         max_iou_distance=cfg.DEEPSORT.MAX_IOU_DISTANCE,
@@ -170,7 +173,7 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
-    push_dis=50
+    push_dis=120
 
     id_dict=dict()
     big_size_num=0
@@ -220,7 +223,6 @@ def run(
             detections = []
             if det is not None and len(det):
                 
-                point1_A,point1_B,point2_A,point2_B,point3_A,point3_B=annotator.setline()
                 masks = process_mask(proto[i], det[:, 6:], det[:, :4], im.shape[2:], upsample=True)  # HWC
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
@@ -238,9 +240,9 @@ def run(
                 annotator.im = scale_masks(im.shape[2:], im_masks, im0.shape)  # scale to original h, w
                 masks_np = masks.cpu().numpy()
                 all_contour_length=[]
-               
+                centroid=[]
                 for mask in masks_np:
-                   
+                    point1_A,point1_B,point2_A,point2_B,point3_A,point3_B=annotator.setline()
                     contours, hierarchy = cv2.findContours(mask.astype(np.uint8),cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                     
                     try:
@@ -255,19 +257,20 @@ def run(
                         # print(width_ratio,height_ratio)
                         
                         max_contour = max(contours, key=cv2.contourArea)
-                        max_contour=scale_contour(max_contour,(width_ratio + height_ratio) / 2)
+                        max_contour,cx,cy=scale_contour(max_contour,(width_ratio + height_ratio) / 2)
                         contour_length = cv2.arcLength(max_contour, closed=True)
                     except:
                         max_contour=0
                         contour_length = 0
+                        cx,cy=0,0
 
                     all_contour_length.insert(0,contour_length/2)
-
+                    centroid.insert(0,(cx,cy))
                 # Write results
                 length_count=0
-                status_last_A="none"
-                status_last_B="none"
-                status_last_C="none"
+                # status_last_A="none"
+                # status_last_B="none"
+                # status_last_C="none"
                 #====================================================TRACKER===============================================
                 #============DEEPSORT========================
                 xywhs=xyxy2xywh(reversed(det[:, :6])[:,:4])
@@ -278,7 +281,7 @@ def run(
 
                 # online_targets = tracker.update(detections, im0)
                 #====================================================TRACKER===============================================
-                
+                # point1_A,point1_B,point2_A,point2_B,point3_A,point3_B=annotator.setline()
                 if len(outputs) > 0:
 
                     for (*xyxy, conf, cls),output  in zip(reversed(det[:, :6]),outputs): #per bbox ,output ,outputs
@@ -290,48 +293,48 @@ def run(
                         #============DEEPSORT========================
                             
                         print(id_dict)    
-                        point1_A,point1_B,point2_A,point2_B,point3_A,point3_B=annotator.setline()
+                        # point1_A,point1_B,point2_A,point2_B,point3_A,point3_B=annotator.setline()
                         # print('cls:',cls)
                         xyxy_list=np.array(torch.tensor(xyxy).view(1, 4).data[0]).tolist()
 
                         # print("xyxy:",xyxy_list)
-                        line_status_A,dis_A=line_pos((xyxy_list[0],xyxy_list[1]), (xyxy_list[0],xyxy_list[3]), point1_A,point1_B) #line A 左或右
-                        line_status_B,dis_B=line_pos((xyxy_list[0],xyxy_list[1]), (xyxy_list[0],xyxy_list[3]), point2_A,point2_B) #line B 左或右
-                        line_status_C,dis_C=line_pos((xyxy_list[0],xyxy_list[1]), (xyxy_list[0],xyxy_list[3]), point3_A,point3_B) #line C 左或右
+                        line_status_A,dis_A=line_pos(((xyxy_list[0]+xyxy_list[2])/2,xyxy_list[1]), ((xyxy_list[0]+xyxy_list[2])/2,xyxy_list[3]), point1_A,point1_B) #line 1 左或右
+                        line_status_B,dis_B=line_pos(((xyxy_list[0]+xyxy_list[2])/2,xyxy_list[1]), ((xyxy_list[0]+xyxy_list[2])/2,xyxy_list[3]), point2_A,point2_B) #line 2 左或右
+                        line_status_C,dis_C=line_pos(((xyxy_list[0]+xyxy_list[2])/2,xyxy_list[1]), ((xyxy_list[0]+xyxy_list[2])/2,xyxy_list[3]), point3_A,point3_B) #line 3 左或右
                         motor="none"
                         
                         print("line: %s %s %s" %(line_status_A,line_status_B,line_status_C))
-                        print("last: %s %s %s" %(status_last_A,status_last_B,status_last_C))
-                        
-                        
+                        # print("last: %s %s %s" %(status_last_A,status_last_B,status_last_C))
+                        # if xyxy_list[1]+xyxy_list[3]>point1_A[1]+point1_B[1]: #objoct far away from pusher
+                        # push=4+0.48*113.1*(xyxy_list[1]+xyxy_list[3])/(2*(point1_B[1]))
+                        push=4+0.48*113.1*centroid[length_count][0]/(point1_B[1])
+                        # push=0.48*113.1*xyxy_list[1]/(point1_B[1])
+                        print(push)
                         #=======================================arduino==============================================================
-                        if  dis_A<25 and line_status_A=="right"  and pixel2len(all_contour_length[length_count])<small and id_dict.get(str(id))==0:
+                        if  dis_A<(760/700)*push and line_status_A=="left"  and pixel2len(all_contour_length[length_count])<small and pixel2len(all_contour_length[length_count])>8  and id_dict.get(str(id))==0:
                             motor="motor_A"                       
                             print("motor_A")
                             motor_fun(1)
-                            # del id_dict[str(id)]
                             id_dict[str(id)]=id_dict.get(str(id))+1
-                            big_size_num+=1
-                           
+                            
+                            # del id_dict[str(id)]
+                            # min_size_num+=1
 
-                        elif dis_B<50 and line_status_B=="right" and pixel2len(all_contour_length[length_count])<big and pixel2len(all_contour_length[length_count])>small and id_dict.get(str(id))==0:
+                        elif dis_B<(850/700)*push and line_status_B=="left" and pixel2len(all_contour_length[length_count])<big and pixel2len(all_contour_length[length_count])>=small and id_dict.get(str(id))==0:
                             print("motor_B")
                             motor="motor_B"
                             motor_fun(2)
-                            # del id_dict[str(id)]
                             id_dict[str(id)]=id_dict.get(str(id))+1
-                            med_size_num+=1
-                            
-                            
-                        elif dis_C<120 and line_status_C=="right" and pixel2len(all_contour_length[length_count])>small and id_dict.get(str(id))==0:
+                            # del id_dict[str(id)]
+                            # med_size_num+=1
+                        elif dis_C<push and line_status_C=="left" and pixel2len(all_contour_length[length_count])>=big and id_dict.get(str(id))==0:
                             print("motor_C")
                             motor="motor_C"
                             motor_fun(3)
                             # del id_dict[str(id)]
+                            # big_size_num+=1
                             id_dict[str(id)]=id_dict.get(str(id))+1
-                            min_size_num+=1
-                            
-                        
+
                            
 
                         #=======================================arduino==============================================================
@@ -346,7 +349,7 @@ def run(
                             c = int(cls)  # integer class
                             
                             
-                            label = None if hide_labels else (names[c] if hide_conf else f'length: {pixel2len(all_contour_length[length_count]):.2f} cm:{str(id)}')
+                            label = None if hide_labels else (names[c] if hide_conf else f'length: {pixel2len(all_contour_length[length_count]):.3f} CM')
                             annotator.box_label(xyxy, label, color=colors(c, True))
                             
                             # print(xyxy)
@@ -354,9 +357,9 @@ def run(
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
                         length_count+=1
-                        status_last_A=line_status_A
-                        status_last_B=line_status_B
-                        status_last_C=line_status_C
+                        # status_last_A=line_status_A
+                        # status_last_B=line_status_B
+                        # status_last_C=line_status_C
                 else:
 
                     for *xyxy, conf, cls in reversed(det[:, :6]):
@@ -368,14 +371,13 @@ def run(
 
                         if save_img or save_crop or view_img:  # Add bbox to image
                             c = int(cls)  # integer class
-                            label = None if hide_labels else (names[c] if hide_conf else f'pixel: {pixel2len(all_contour_length[length_count]):.2f} cm') #:{str(id)}
+                            label = None if hide_labels else (names[c] if hide_conf else f'pixel: {pixel2len(all_contour_length[length_count]):.2f}')
                             annotator.box_label(xyxy, label, color=colors(c, True))
                         if save_crop:
                             save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
                         length_count+=1
             # Stream results
-            # im0=annotator.text((im0.shape[0],im0.shape[1]),f'big:{big_size_num},med:{med_size_num},small{min_size_num}')
-            print(f'big:{big_size_num},med:{med_size_num},small:{min_size_num}')
+            
             im0 = annotator.result()
             if view_img:
                 if platform.system() == 'Linux' and p not in windows:
